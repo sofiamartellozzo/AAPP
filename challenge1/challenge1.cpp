@@ -14,15 +14,14 @@ struct Cell {
   int x;
   int y;
   struct Cell *father;
-  struct Cell *dx_cell;
-  struct Cell *dw_cell;
-  bool Dx_wall; //= true;
-  bool Dw_wall; //= true;
+  bool Dx_wall; 
+  bool Dw_wall; 
 };
 
 struct Walls{
   struct Cell *cell1;
   struct Cell *cell2;
+  bool orientation; //0 = vertical 1 = orizontal
 };
 
 Cell** GenerateMaze(int num_rows,int num_cols){
@@ -36,26 +35,45 @@ Cell** GenerateMaze(int num_rows,int num_cols){
       maze[i][j].father = &maze[i][j]; //at first each set is comosed of only the cell itself
     }
   }
-  /*
-  //then connect all near by cell
-  for(int i=0; i<num_rows+1; i++){
-    for(int j=0; j<num_cols+1; j++){
-      if(j<num_cols) {maze[i][j].dx_cell = &maze[i][j+1];};
-      if(i<num_rows) {maze[i][j].dw_cell = &maze[i+1][j];};
-    }
-  }*/
   return maze;
 }
 
+list<Walls> GenerateWalls(int num_rows, int num_cols, Cell** maze){
+
+  list<Walls> walls;
+  for(int i=0; i<num_rows; i++){
+    for(int j=0; j<num_cols; j++){
+      if(j<num_cols-1) {
+        
+        Walls wall1;
+        wall1.cell1 = &maze[i][j];
+        wall1.cell2 = &maze[i][j+1]; //dx
+        wall1.orientation = 0; //orizontal
+        walls.push_back(wall1);
+        
+        };
+      if(i<num_rows-1) {
+        
+        Walls wall2;
+        wall2.cell1 = &maze[i][j];
+        wall2.cell2 = &maze[i+1][j]; //down
+        wall2.orientation = 1; //vertical
+        walls.push_back(wall2);
+      
+        };
+    }
+  }
+  return walls;
+}
+
 Cell* Find_Set(Cell *c){
-  cout << "search the father" << endl;
+
     if ((c->x == c->father->x)&&(c->y == c->father->y)){
         //we found the representative
         return c;
     }
     else{
         //go up on the tree
-        cout << "call recursion" << endl;
         Cell * aux_pointer;
         aux_pointer = Find_Set(c->father);
         return aux_pointer;
@@ -63,12 +81,12 @@ Cell* Find_Set(Cell *c){
 }
 
 bool Find(Cell *c1, Cell *c2){
-  cout << "enter??" << endl;
+
   Cell *father1;
   Cell *father2;
   father1 = Find_Set(c1);
-  cout << "CAXXX" << endl;
   father2 = Find_Set(c2);
+
   if ((father1->x == father2->x)&&(father1->y == father2->y)){
     return true;
   }
@@ -84,7 +102,18 @@ void Union (Cell *c1, Cell *c2){
   aux_father1 = Find_Set(c1);
   aux_father2 = Find_Set(c2);
 
-  aux_father2->father = aux_father1;
+  aux_father1->father = aux_father2;
+}
+
+bool DFS(Cell **maze, Cell  *start, Cell  *goal){
+  Cell *sol;
+  sol = Find_Set(start);
+  if((sol->x == goal->x)&&(sol->y == goal->y)){
+    return true;
+  }
+  else{
+    return false;
+  }
 }
 
 
@@ -98,36 +127,10 @@ int main(){
   Cell **maze;
   maze = GenerateMaze(num_rows, num_cols);
 
-//   cout << "second" << endl;
-//   cout << maze[5][0].y << endl;
-//   cout << "second" << endl;
-//   cout << maze[0][0].x << endl;
-
   //generate the list of walls
-  int num_walls = (num_rows-1)*(num_cols-1);
   list<Walls> walls;
-  for(int i=0; i<num_rows; i++){
-    for(int j=0; j<num_cols; j++){
-      if(j<num_cols-1) {
-        // cout << "wall1: " << i << j << endl;
-        Walls wall1;
-        wall1.cell1 = &maze[i][j];
-        wall1.cell2 = &maze[i][j+1]; //dx
-        walls.push_back(wall1);
-        // cout << wall1.cell1->x << wall1.cell1->y << endl;
-        // cout << wall1.cell2->x << wall1.cell2->y << endl;
-        };
-      if(i<num_rows-1) {
-        // cout << "wall2: " << i << j << endl;
-        Walls wall2;
-        wall2.cell1 = &maze[i][j];
-        wall2.cell2 = &maze[i+1][j]; //down
-        walls.push_back(wall2);
-        // cout << wall2.cell1->x << wall2.cell1->y << endl;
-        // cout << wall2.cell2->x << wall2.cell2->y << endl;
-        };
-    }
-  }
+  walls = GenerateWalls(num_rows, num_cols, maze);
+  
   
   Cell  *start = &maze[0][0];
   Cell  *goal = &maze[num_rows-1][num_cols-1];
@@ -160,13 +163,56 @@ int main(){
       cout << "size of the list is:" << walls_lenght << endl;
       Union(neighbor1, neighbor2);
     }
-   }
+  }
 
+  //now test the solution
+  bool solution = DFS(maze, start, goal);
+  if (solution){
+    cout << "Path found!" << endl;
+  }
+  else{
+    cout << "Path not found" << endl;
+  }
 
-  cout << maze[3][0].x << endl;
+  //now print the solution
+  //first set for each cell wich wall is still up
+  list<Walls>::iterator iter = walls.begin();
+  for(int w = 0; w < walls.size(); w++ ){
+    advance(iter, w);
+    if(iter->orientation == 0){
+      //orizontal wall
+      iter->cell1->Dx_wall = true;
+    }
+    else{
+      //vertical wall
+      iter->cell1->Dw_wall = true;
+    }
+  }
+
+  //to print it I will generate n_rows string
+  list<string> rows;
+  string roof;
+  for (int i = 0; i < num_cols; i++){
+    string one_roof = "-";
+    roof += one_roof;
+  }
+  
+  for(int r = 0; r < num_rows; r++){
+    string row;
+    for(int c = 0; c < num_cols; c++){
+      string cell_str;
+      if (r == 0){
+        //first row
+        if (c == 0){
+          if ((maze[r][c].Dx_wall)&&(maze[r][c].Dw_wall)){
+            cell_str = "";
+          }
+        }
+      }
+    }
+
   return 0;
   
 }
 
-
-
+}
