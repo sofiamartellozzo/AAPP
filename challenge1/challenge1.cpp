@@ -12,11 +12,11 @@ struct Cell {
 
   struct Cell *father;  // pointer to its father
 
-  bool visited;         // marker for DFS 
-  list<Cell> adj_cells; // adjacent list of cells (for DFS)
+  bool visited = false;         // marker for DFS 
+  list<pair<int, int> > adj_cells; // adjacent list of cells (for DFS)
 
-  bool Dx_wall;         // for representation
-  bool Dw_wall; 
+  bool Dx_wall = false;         // for representation
+  bool Dw_wall = false; 
 };
 
 /* walls definition */
@@ -26,8 +26,8 @@ struct Walls{
   bool orientation;     // 0 = vertical 1 = orizontal
 };
 
-list<Cell> sol;
-list<Cell> adj;
+list<pair<int,int> > sol;
+list<pair<int,int> > adj;
 
 
 /* method to generate the grid with all the cells at the beguinning */
@@ -122,32 +122,30 @@ void Union (Cell *c1, Cell *c2){
 
   aux_father1->father = aux_father2;
 
-  c1->adj_cells.push_back(*c2);
-  c2->adj_cells.push_back(*c1);
+  pair<int,int> indexes1;
+  pair<int,int> indexes2;
+  indexes1 = make_pair(c1->x, c1->y);
+  indexes2 = make_pair(c2->x, c2->y);
+
+  c1->adj_cells.push_back(indexes2);
+  c2->adj_cells.push_back(indexes1);
 }
 
 /* Depth First Search Algorithm to find the path from s to g */
-list<Cell> DFS(Cell  *n, Cell  *goal, Cell **maze){
+list<pair<int,int> > DFS(Cell  *node, Cell  *goal, Cell **maze){
 
-  cout << "LALA" << endl;
-
-  cout << "sol: " << sol.size() << endl;
-  cout << "adj: " << adj.size() << endl;
-
-  Cell * node;
-  node = &maze[n->x][n->y];
-
-  sol.push_back(*node);
+  pair<int,int> coord_n;
+  coord_n = make_pair(node->x, node->y);
+  sol.push_back(coord_n);
   node->visited = true;
   if(adj.size() > 0){
-    
-    adj.remove(*node);        //remove the first element (that is node)
+    cout << "remove it " << endl;
+    adj.remove(coord_n);        //remove the first element 
   }
-  cout << "sol: " << sol.size() << endl;
-  cout << "adj: " << adj.size() << endl;
   
   if((node->x == goal->x)&&(node->y == goal->y)){
 
+    cout << "(" << node->x << "," << node->y << ") -> " << endl;
     return sol;
   }
   else{
@@ -155,25 +153,24 @@ list<Cell> DFS(Cell  *n, Cell  *goal, Cell **maze){
     // debug
     cout << "(" << node->x << "," << node->y << ") -> " << endl;
 
-    list<Cell> node_adj;
+    list<pair<int,int> > node_adj;
     node_adj = node->adj_cells; 
-    list<Cell>::iterator it = node_adj.begin();
 
-    for(int i = 0; i < node_adj.size(); i++){
+    for(auto it = node_adj.begin(); it != node_adj.end(); ++it){
 
-      advance(it, i);
-      if(it->visited == false){
+      cout << "adjacents: " << it->first << it->second << endl;
+      if(maze[it->first][it->second].visited == false){
 
         adj.push_front(*it);
+
       }
     }
-    cout << "sol: " << sol.size() << endl;
-    cout << "adj: " << adj.size() << endl;
+    pair<int,int> next_node;
+    next_node = adj.front();
     Cell * new_node;
-    new_node = &adj.front();
-    cout << "sol: " << sol.size() << endl;
-    cout << "adj: " << adj.size() << endl;
+    new_node = &maze[next_node.first][next_node.second];
     sol = DFS(new_node, goal, maze);
+
     return sol;
   }
 }
@@ -238,57 +235,65 @@ int main(){
     }
   }
 
-  list<Cell> path ;  // the path from s to g
+  list<pair<int,int> > path ;  // the path from s to g
   //list<Cell> adj;       // where to store the adjacent cells for DFS
   
   //path = DFS(start, goal, adj, path);
   path = DFS(start, goal, maze);
 
-  /*
-  bool solution = DFS(maze, start, goal);
-  if (solution){
-    cout << "Path found!" << endl;
-  }
-  else{
-    cout << "Path not found" << endl;
-  }
+  
 
   //now print the solution
   //first set for each cell wich wall is still up
-  list<Walls>::iterator iter = walls.begin();
-  for(int w = 0; w < walls.size(); w++ ){
-    advance(iter, w);
-    if(iter->orientation == 0){
+  
+  for(auto it = walls.begin(); it != walls.end(); ++it ){
+    
+    if(it->orientation == 0){
       //orizontal wall
-      iter->cell1->Dx_wall = true;
+      it->cell1->Dx_wall = true;
     }
     else{
       //vertical wall
-      iter->cell1->Dw_wall = true;
+      it->cell1->Dw_wall = true;
     }
   }
 
   //to print it I will generate n_rows string
-  list<string> rows;
+  //list<string> rows;
   string roof;
   for (int i = 0; i < num_cols; i++){
-    string one_roof = "-";
+    string one_roof = "--";
     roof += one_roof;
   }
 
+  cout << roof << endl;
+
   for(int r = 0; r < num_rows; r++){
     string row;
+    row += "|";
     for(int c = 0; c < num_cols; c++){
-      string cell_str;
-      if (r == 0){
-        //first row
-        if (c == 0){
-          if ((maze[r][c].Dx_wall)&&(maze[r][c].Dw_wall)){
-            cell_str = "";
-          }
+      if (maze[r][c].Dx_wall){
+        if(maze[r][c].Dw_wall){
+          row += "_|";
         }
+        else{
+          row += " |";
+        }
+        
       }
-    }*/
+      else if(maze[r][c].Dw_wall){
+        row += "_ ";
+      }
+      else{
+        row += "  ";
+      }
+    }
+    row += "|";
+    cout << row << endl;
+
+  }
+
+  cout << roof << endl;
 
   return 0;
   
