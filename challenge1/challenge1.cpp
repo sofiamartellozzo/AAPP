@@ -261,8 +261,9 @@ int main(){
   //to print it I will generate n_rows string
   //list<string> rows;
   string roof;
+  roof += " ";
+  string one_roof = "__";
   for (int i = 0; i < num_cols; i++){
-    string one_roof = "--";
     roof += one_roof;
   }
 
@@ -292,7 +293,12 @@ int main(){
     cout << row << endl;
 
   }
-
+  
+  roof = " ";
+  one_roof = "--";
+  for (int i = 0; i < num_cols; i++){
+    roof += one_roof;
+  }
   cout << roof << endl;
 
   return 0;
