@@ -139,26 +139,25 @@ list<pair<int,int> > DFS(Cell  *node, Cell  *goal, Cell **maze){
   sol.push_back(coord_n);
   node->visited = true;
   if(adj.size() > 0){
-    cout << "remove it " << endl;
+
     adj.remove(coord_n);        //remove the first element 
   }
   
   if((node->x == goal->x)&&(node->y == goal->y)){
 
-    cout << "(" << node->x << "," << node->y << ") -> " << endl;
+    cout << "(" << node->x << "," << node->y << ") " << endl;
     return sol;
   }
   else{
 
     // debug
-    cout << "(" << node->x << "," << node->y << ") -> " << endl;
+    cout << "(" << node->x << "," << node->y << ") -> ";
 
     list<pair<int,int> > node_adj;
     node_adj = node->adj_cells; 
 
     for(auto it = node_adj.begin(); it != node_adj.end(); ++it){
 
-      cout << "adjacents: " << it->first << it->second << endl;
       if(maze[it->first][it->second].visited == false){
 
         adj.push_front(*it);
@@ -173,6 +172,49 @@ list<pair<int,int> > DFS(Cell  *node, Cell  *goal, Cell **maze){
 
     return sol;
   }
+}
+
+void PrintMaze(int num_cols, int num_rows, Cell ** maze){
+  string roof;
+  roof += " ";
+  string one_roof = "__";
+  for (int i = 0; i < num_cols; i++){
+    roof += one_roof;
+  }
+
+  cout << roof << endl;
+
+  for(int r = 0; r < num_rows; r++){
+    string row;
+    row += "|";
+    for(int c = 0; c < num_cols; c++){
+      if (maze[r][c].Dx_wall){
+        if(maze[r][c].Dw_wall){
+          row += "_|";
+        }
+        else{
+          row += " |";
+        }
+        
+      }
+      else if(maze[r][c].Dw_wall){
+        row += "_ ";
+      }
+      else{
+        row += "  ";
+      }
+    }
+    row += "|";
+    cout << row << endl;
+
+  }
+  
+  roof = " ";
+  one_roof = "--";
+  for (int i = 0; i < num_cols; i++){
+    roof += one_roof;
+  }
+  cout << roof << endl;
 }
 
 
@@ -245,7 +287,6 @@ int main(){
 
   //now print the solution
   //first set for each cell wich wall is still up
-  
   for(auto it = walls.begin(); it != walls.end(); ++it ){
     
     if(it->orientation == 0){
@@ -258,48 +299,10 @@ int main(){
     }
   }
 
-  //to print it I will generate n_rows string
-  //list<string> rows;
-  string roof;
-  roof += " ";
-  string one_roof = "__";
-  for (int i = 0; i < num_cols; i++){
-    roof += one_roof;
-  }
+  PrintMaze(num_cols, num_rows, maze);
 
-  cout << roof << endl;
-
-  for(int r = 0; r < num_rows; r++){
-    string row;
-    row += "|";
-    for(int c = 0; c < num_cols; c++){
-      if (maze[r][c].Dx_wall){
-        if(maze[r][c].Dw_wall){
-          row += "_|";
-        }
-        else{
-          row += " |";
-        }
-        
-      }
-      else if(maze[r][c].Dw_wall){
-        row += "_ ";
-      }
-      else{
-        row += "  ";
-      }
-    }
-    row += "|";
-    cout << row << endl;
-
-  }
   
-  roof = " ";
-  one_roof = "--";
-  for (int i = 0; i < num_cols; i++){
-    roof += one_roof;
-  }
-  cout << roof << endl;
+  
 
   return 0;
   
