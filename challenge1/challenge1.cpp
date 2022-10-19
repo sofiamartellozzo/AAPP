@@ -13,7 +13,7 @@ struct Cell {
   struct Cell *father;  // pointer to its father
 
   bool visited = false;         // marker for DFS 
-  list<pair<int, int> > adj_cells; // adjacent list of cells (for DFS)
+  list<Cell* > adj_cells; // adjacent list of cells (for DFS)
 
   bool Dx_wall = false;         // for representation
   bool Dw_wall = false; 
@@ -26,8 +26,8 @@ struct Walls{
   bool orientation;     // 0 = vertical 1 = orizontal
 };
 
-list<pair<int,int> > sol;
-list<pair<int,int> > adj;
+list<Cell* > sol;
+list<Cell* > adj;
 
 
 /* method to generate the grid with all the cells at the beguinning */
@@ -122,25 +122,19 @@ void Union (Cell *c1, Cell *c2){
 
   aux_father1->father = aux_father2;
 
-  pair<int,int> indexes1;
-  pair<int,int> indexes2;
-  indexes1 = make_pair(c1->x, c1->y);
-  indexes2 = make_pair(c2->x, c2->y);
+  c1->adj_cells.push_back(c2);
+  c2->adj_cells.push_back(c1);
 
-  c1->adj_cells.push_back(indexes2);
-  c2->adj_cells.push_back(indexes1);
 }
 
 /* Depth First Search Algorithm to find the path from s to g */
-list<pair<int,int> > DFS(Cell  *node, Cell  *goal, Cell **maze){
+list<Cell* > DFS(Cell  *node, Cell  *goal){
 
-  pair<int,int> coord_n;
-  coord_n = make_pair(node->x, node->y);
-  sol.push_back(coord_n);
+  sol.push_back(node);
   node->visited = true;
   if(adj.size() > 0){
 
-    adj.remove(coord_n);        //remove the first element 
+    adj.remove(node);        //remove the first element 
   }
   
   if((node->x == goal->x)&&(node->y == goal->y)){
@@ -153,22 +147,20 @@ list<pair<int,int> > DFS(Cell  *node, Cell  *goal, Cell **maze){
     // debug
     cout << "(" << node->x << "," << node->y << ") -> ";
 
-    list<pair<int,int> > node_adj;
+    list<Cell* > node_adj;
     node_adj = node->adj_cells; 
 
     for(auto it = node_adj.begin(); it != node_adj.end(); ++it){
-
-      if(maze[it->first][it->second].visited == false){
-
-        adj.push_front(*it);
-
-      }
+        
+        Cell* c = (*it);
+        if(c->visited == false){
+            
+            adj.push_front(*it);
+        }
     }
-    pair<int,int> next_node;
-    next_node = adj.front();
     Cell * new_node;
-    new_node = &maze[next_node.first][next_node.second];
-    sol = DFS(new_node, goal, maze);
+    new_node = adj.front();
+    sol = DFS(new_node, goal);
 
     return sol;
   }
@@ -277,11 +269,8 @@ int main(){
     }
   }
 
-  list<pair<int,int> > path ;  // the path from s to g
-  //list<Cell> adj;       // where to store the adjacent cells for DFS
-  
-  //path = DFS(start, goal, adj, path);
-  path = DFS(start, goal, maze);
+  list<Cell* > path ;  // the path from s to g
+  path = DFS(start, goal);
 
   
 
