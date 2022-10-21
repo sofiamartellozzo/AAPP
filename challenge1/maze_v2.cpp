@@ -11,10 +11,10 @@ struct Cell {
   int x;                // column
   int y;                // row
 
-  struct Cell *father;  // pointer to its father
+  struct Cell *father;         // pointer to its father
 
-  bool visited = false;         // marker for DFS 
-  list<Cell* > adj_cells; // adjacent list of cells (for DFS)
+  bool visited = false;        // marker for DFS 
+  list<Cell* > adj_cells;      // adjacent list of cells (for DFS)
 
   bool Dx_wall = true;         // for representation
   bool Dw_wall = true; 
@@ -123,6 +123,16 @@ void Union (Cell *c1, Cell *c2){
 
   aux_father1->father = aux_father2;
 
+  //update itself if its father is not itself
+  if((c1->x != aux_father1->x)||(c1->y != aux_father1->y)){
+    c1->father = aux_father2;
+  }
+  //update also father of a child
+  if(!c1->adj_cells.empty()){
+    (*c1->adj_cells.begin())->father = aux_father2;
+
+  }
+
   c1->adj_cells.push_back(c2);
   c2->adj_cells.push_back(c1);
 
@@ -145,7 +155,6 @@ list<Cell* > DFS(Cell  *node, Cell  *goal){
   }
   else{
 
-    // debug
     cout << "(" << node->x << "," << node->y << ") -> ";
 
     list<Cell* > node_adj;
@@ -198,9 +207,9 @@ void PrintMaze(int num_cols, int num_rows, Cell ** maze){
       }
     }
     cout << row << endl;
-
   }
 }
+
 
 bool contains(list<Cell* > l, Cell* c){
   return std::find(std::begin(l),std::end(l),c) != std::end(l);
@@ -288,13 +297,12 @@ int main(){
   while(!Find(start, goal)){
 
     int walls_lenght = walls.size();
-
+    
     std::random_device rd;     // Only used once to initialise (seed) engine
     std::mt19937 rng(rd());    // Random-number engine used (Mersenne-Twister in this case)
     std::uniform_int_distribution<int> uni(1,walls_lenght); // Guaranteed unbiased
     auto random_integer = uni(rng);
 
-    // debug
     cout << "random number: " << random_integer << endl;
 
     // initialize iterator to list
@@ -302,7 +310,6 @@ int main(){
     //move the iterator by random_integer -1 elements, -1 because the list starts from 0
     advance(it, random_integer - 1);
 
-    // debug
     cout << "(" << it->cell1->x << "," << it->cell1->y << ") ";
     cout << "(" << it->cell2->x << "," << it->cell2->y << ") : ";
 
@@ -324,18 +331,16 @@ int main(){
         neighbor1->Dw_wall = false;
       }
 
-      walls.erase(it);  // remove the wall
-
       // join the two cell in the same set
       Union(neighbor1, neighbor2);
 
       PrintMaze(num_cols, num_rows, maze);
-
     }
     else{
       cout << "do not remove the wall" << endl;
       PrintMaze(num_cols, num_rows, maze);
     }
+    walls.erase(it);  // remove the wall from the list
   }
 
   cout << "Path foud with DFS: " << endl;
@@ -343,16 +348,9 @@ int main(){
   list<Cell* > path ;  // the path from s to g
   path = DFS(start, goal);
 
-  
-
   //now print the final solution
-
-
   PrintMaze(num_cols, num_rows, maze);
   PrintPath(num_cols, num_rows, maze, path);
-
-  
-  
 
   return 0;
   

@@ -2,6 +2,7 @@
 #include <iostream> 
 #include <list>
 #include <random>
+#include <algorithm>
 using namespace std;
 
 
@@ -10,13 +11,13 @@ struct Cell {
   int x;                // column
   int y;                // row
 
-  struct Cell *father;  // pointer to its father
+  struct Cell *father;         // pointer to its father
 
-  bool visited = false;         // marker for DFS 
-  list<Cell* > adj_cells; // adjacent list of cells (for DFS)
+  bool visited = false;        // marker for DFS 
+  list<Cell* > adj_cells;      // adjacent list of cells (for DFS)
 
-  bool Dx_wall = false;         // for representation
-  bool Dw_wall = false; 
+  bool Dx_wall = true;         // for representation
+  bool Dw_wall = true; 
 };
 
 /* walls definition */
@@ -26,8 +27,8 @@ struct Walls{
   bool orientation;     // 0 = vertical 1 = orizontal
 };
 
-list<Cell* > sol;
-list<Cell* > adj;
+list<Cell* > sol;   // where DFS will store the path
+list<Cell* > adj;   // where DFS will store the adjacent nodes
 
 
 /* method to generate the grid with all the cells at the beguinning */
@@ -60,7 +61,7 @@ list<Walls> GenerateWalls(int num_rows, int num_cols, Cell** maze){
         Walls wall1;
         wall1.cell1 = &maze[i][j];
         wall1.cell2 = &maze[i][j+1]; // dx
-        wall1.orientation = 0;       // orizontal
+        wall1.orientation = 0;       // vertical
         walls.push_back(wall1);
         
       };
@@ -69,7 +70,7 @@ list<Walls> GenerateWalls(int num_rows, int num_cols, Cell** maze){
         Walls wall2;
         wall2.cell1 = &maze[i][j];
         wall2.cell2 = &maze[i+1][j]; // down
-        wall2.orientation = 1;       // vertical
+        wall2.orientation = 1;       // orizontal
         walls.push_back(wall2);
       
       };
@@ -89,6 +90,8 @@ Cell* Find_Set(Cell *c){
         //go up on the tree
         Cell * aux_pointer;
         aux_pointer = Find_Set(c->father);
+        // perform the path compression
+        c->father = aux_pointer;
         return aux_pointer;
     }
 }
@@ -122,20 +125,7 @@ void Union (Cell *c1, Cell *c2){
 
   aux_father1->father = aux_father2;
 
-  //update itself if its father is not itself
-  if((c1->x != aux_father1->x)||(c1->y != aux_father1->y)){
-    c1->father = aux_father2;
-  }
-  //update also father of a child
-  if(!c1->adj_cells.empty()){
-    
-    for(auto it = c1->adj_cells.begin(); it != c1->adj_cells.end(); ++it){
-        (*it)->father = aux_father2;
-    }
-
-  }
-
-  c1->adj_cells.push_back(c2);
+  c1->adj_cells.push_back(c2);  // set the near by reference for the visualization
   c2->adj_cells.push_back(c1);
 
 }
@@ -209,17 +199,72 @@ void PrintMaze(int num_cols, int num_rows, Cell ** maze){
         row += "  ";
       }
     }
-    row += "|";
     cout << row << endl;
-
   }
-  
-  roof = " ";
-  one_roof = "--";
+}
+
+bool contains(list<Cell* > l, Cell* c){
+  return std::find(std::begin(l),std::end(l),c) != std::end(l);
+}
+
+void PrintPath(int num_cols, int num_rows, Cell ** maze, list<Cell* > path){
+  string roof;
+  roof += " ";
+  string one_roof = "___";
   for (int i = 0; i < num_cols; i++){
     roof += one_roof;
   }
+
   cout << roof << endl;
+
+  bool exists ;
+
+  for(int r = 0; r < num_rows; r++){
+    string row;
+    row += "|";
+    for(int c = 0; c < num_cols; c++){
+
+      exists = contains(path, &maze[r][c]); //check if current cell is in the path
+
+      if(!exists){
+        if (maze[r][c].Dx_wall){
+          if(maze[r][c].Dw_wall){
+            row += "__|";
+          }
+          else{
+            row += "  |";
+          }
+            
+        }
+        else if(maze[r][c].Dw_wall){
+          row += "__ ";
+        }
+        else{
+          row += "   ";
+        }
+      }
+      else{
+        if (maze[r][c].Dx_wall){
+          if(maze[r][c].Dw_wall){
+            row += "x_|";
+          }
+          else{
+            row += "x |";
+          }
+            
+        }
+        else if(maze[r][c].Dw_wall){
+          row += "x_ ";
+        }
+        else{
+          row += "x  ";
+        }
+
+      }
+
+    }
+    cout << row << endl;
+  }
 }
 
 
@@ -243,16 +288,13 @@ int main(){
   // repeat until s and g are in the same set
   while(!Find(start, goal)){
 
-    // debug
     int walls_lenght = walls.size();
-    cout << "size of the list is:" << walls_lenght << endl;
 
     std::random_device rd;     // Only used once to initialise (seed) engine
     std::mt19937 rng(rd());    // Random-number engine used (Mersenne-Twister in this case)
     std::uniform_int_distribution<int> uni(1,walls_lenght); // Guaranteed unbiased
     auto random_integer = uni(rng);
 
-    // debug
     cout << "random number: " << random_integer << endl;
 
     // initialize iterator to list
@@ -260,9 +302,8 @@ int main(){
     //move the iterator by random_integer -1 elements, -1 because the list starts from 0
     advance(it, random_integer - 1);
 
-    // debug
-    cout << it->cell1->x << it->cell1->y << endl;
-    cout << it->cell2->x << it->cell2->y << endl;
+    cout << "(" << it->cell1->x << "," << it->cell1->y << ") ";
+    cout << "(" << it->cell2->x << "," << it->cell2->y << ") : ";
 
     // get the two cell faced by the wall selected
     Cell *neighbor1 = it->cell1;
@@ -271,40 +312,38 @@ int main(){
     // check if belongs to the same set
     if(!Find(neighbor1, neighbor2)){
 
-      walls.erase(it);  // remove the wall
+      cout << "remove wall" << endl;
 
-      // debug
-      int walls_lenght = walls.size();
-      cout << "size of the list is:" << walls_lenght << endl;
+      if(it->orientation == 0){
+        //vertical wall removed
+        neighbor1->Dx_wall = false;
+      }
+      else{
+        //orizontal
+        neighbor1->Dw_wall = false;
+      }
 
       // join the two cell in the same set
       Union(neighbor1, neighbor2);
+
+      PrintMaze(num_cols, num_rows, maze);
+
     }
+    else{
+      cout << "do not remove the wall" << endl;
+      PrintMaze(num_cols, num_rows, maze);
+    }
+    walls.erase(it);  // remove the wall from the list
   }
+
+  cout << "Path foud with DFS: " << endl;
 
   list<Cell* > path ;  // the path from s to g
   path = DFS(start, goal);
 
-  
-
-  //now print the solution
-  //first set for each cell wich wall is still up
-  for(auto it = walls.begin(); it != walls.end(); ++it ){
-    
-    if(it->orientation == 0){
-      //orizontal wall
-      it->cell1->Dx_wall = true;
-    }
-    else{
-      //vertical wall
-      it->cell1->Dw_wall = true;
-    }
-  }
-
+  //now print the final solution
   PrintMaze(num_cols, num_rows, maze);
-
-  
-  
+  PrintPath(num_cols, num_rows, maze, path);
 
   return 0;
   
